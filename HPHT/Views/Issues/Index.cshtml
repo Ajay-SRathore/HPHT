@@ -1,0 +1,243 @@
+﻿@model IEnumerable<HPHT.Models.Issues>
+
+@{
+    ViewData["Title"] = "Issue List";
+}
+
+<style>
+
+    .issue-card {
+        background: white;
+        padding: 20px;
+        border-radius: 12px;
+        box-shadow: 0 4px 15px rgba(0,0,0,.08);
+        overflow-x: auto;
+    }
+
+    .issue-table {
+        width: 100%;
+        border-collapse: collapse;
+        min-width: 1800px;
+    }
+
+    .issue-table th {
+        background: #0d6efd;
+        color: white;
+        padding: 12px;
+        text-align: center;
+        border: 1px solid #d5e0ff;
+        white-space: nowrap;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+
+    .issue-table td {
+        border: 1px solid #ddd;
+        padding: 10px;
+        white-space: nowrap;
+        vertical-align: middle;
+    }
+
+    .issue-table tbody tr:nth-child(even) {
+        background: #fafafa;
+    }
+
+    .issue-table tbody tr:hover {
+        background: #eef4ff;
+    }
+
+    .toolbar{
+        margin-bottom:15px;
+    }
+
+    .toolbar .btn{
+        margin-right:8px;
+    }
+
+    .pagination{
+        justify-content:center;
+        margin-top:20px;
+    }
+
+    .page-item.active .page-link{
+        background:#0d6efd;
+        border-color:#0d6efd;
+    }
+
+</style>
+
+<h2 class="mb-4">Issue List</h2>
+
+<div class="toolbar">
+
+  <p>
+        <a asp-action="Create" class="btn btn-success">New Issue Stones</a>
+    </p>
+
+    <p>
+        <a asp-action="Return" class="btn btn-success">Return Stones</a>
+    </p>
+
+    <p>
+        <a asp-action="Repeat" class="btn btn-success">Repeat Stones</a>
+    </p>
+
+</div>
+
+<form method="get"
+      asp-action="Index"
+      class="row g-2 mb-4">
+
+    <div class="col-md-3">
+        <input type="text"
+               name="kaid"
+               value="@Context.Request.Query["kaid"]"
+               class="form-control"
+               placeholder="Search KAID">
+    </div>
+
+    <div class="col-md-3">
+        <input type="text"
+               name="clientId"
+               value="@Context.Request.Query["clientId"]"
+               class="form-control"
+               placeholder="Search Client ID">
+    </div>
+
+    <div class="col-md-3">
+
+        <select name="ccode"
+                class="form-select">
+
+            <option value="">
+                All Clients
+            </option>
+
+            @foreach (var c in ViewBag.Clients)
+            {
+                <option value="@c.Value"
+                        selected="@(Context.Request.Query["ccode"]==c.Value)">
+                    @c.Text
+                </option>
+            }
+
+        </select>
+
+    </div>
+
+    <div class="col-md-3">
+
+        <button class="btn btn-primary">
+            Filter
+        </button>
+
+        <a asp-action="Index"
+           class="btn btn-secondary">
+            Reset
+        </a>
+
+    </div>
+
+</form>
+
+<div class="issue-card">
+
+    <table class="issue-table">
+
+        <thead>
+
+            <tr>
+
+                <th>KAID</th>
+                <th>Client ID</th>
+                <th>Lot No</th>
+                <th>Client</th>
+                <th>Pkt No</th>
+                <th>PCS</th>
+                <th>Issue Date</th>
+                <th>Issue Weight</th>
+                <th>Shape</th>
+                <th>Exp</th>
+                <th>Price</th>
+                <th>Remarks</th>
+                <th>Return Date</th>
+                <th>Return Weight</th>
+
+            </tr>
+
+        </thead>
+
+        <tbody>
+
+            @foreach (var item in Model)
+            {
+                <tr>
+
+                    <td>@item.KAID</td>
+                    <td>@item.ClientId</td>
+                    <td>@item.LotNo</td>
+                    <td>@item.Client?.Name</td>
+                    <td>@item.PktNo</td>
+                    <td>@item.PCS</td>
+
+                    <td>
+                        @(item.IssueDate?.ToString("dd-MMM-yyyy"))
+                    </td>
+
+                    <td>@item.IssueWeight</td>
+
+                    <td>@item.Shape</td>
+
+                    <td>@item.Exp</td>
+
+                    <td>@item.Price</td>
+
+                    <td>@item.Remarks</td>
+
+                    <td>
+                        @(item.RETURNDATE?.ToString("dd-MMM-yyyy"))
+                    </td>
+
+                    <td>@item.RETURNWEIGHT</td>
+
+                </tr>
+            }
+
+        </tbody>
+
+    </table>
+
+</div>
+
+@if (ViewBag.TotalPages > 1)
+{
+    <nav>
+
+        <ul class="pagination">
+
+            @for (int i = 1; i <= ViewBag.TotalPages; i++)
+            {
+                <li class="page-item @(i==ViewBag.CurrentPage ? "active" : "")">
+
+                    <a class="page-link"
+                       href="@Url.Action(
+"Index",
+new {
+page=i,
+ccode=Context.Request.Query["ccode"],
+kaid=Context.Request.Query["kaid"],
+clientId=Context.Request.Query["clientId"]
+})">
+
+                        @i
+
+                    </a>
+
+                </li>
+            }
+
+        </ul>
+
+    </nav>
+}

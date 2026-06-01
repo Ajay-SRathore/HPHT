@@ -1,0 +1,133 @@
+﻿<link rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+@{
+    ViewData["Title"] = "Reports";
+}
+
+<div class="container-fluid">
+
+    <div class="card shadow-sm border-0">
+
+        <div class="card-header bg-primary text-white">
+            <h3 class="mb-0">
+                <i class="bi bi-file-earmark-bar-graph"></i>
+                Reports Center
+            </h3>
+        </div>
+
+        <div class="card-body">
+
+            <form method="get">
+
+                <!-- Filters -->
+                <div class="row g-3 mb-4">
+
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold">
+                            Client
+                        </label>
+
+                        <select name="ccode" class="form-select">
+                            <option value="">
+                                -- All Clients --
+                            </option>
+
+                            @foreach (var c in ViewBag.Clients)
+                            {
+                                <option value="@c.Value">
+                                    @c.Text
+                                </option>
+                            }
+                        </select>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold">
+                            From Date
+                        </label>
+
+                        <input type="date"
+                               name="fromDate"
+                               value="@DateTime.Today.AddMonths(-1).ToString("yyyy-MM-dd")"
+                               class="form-control" />
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold">
+                            To Date
+                        </label>
+
+                        <input type="date"
+                               name="toDate"
+                               value="@DateTime.Today.ToString("yyyy-MM-dd")"
+                               class="form-control" />
+                    </div>
+
+                </div>
+
+                <hr />
+
+                <!-- Report Cards -->
+                <div class="row g-4 mt-2">
+
+                    <div class="col-md-6 col-lg-3">
+                        <button formaction="/Reports/IssuedReport"
+                                class="btn btn-outline-primary w-100 p-4">
+
+                            <h5>📦 Issued Stones</h5>
+
+                            <small>
+                                Download all issued stones
+                            </small>
+
+                        </button>
+                    </div>
+
+                    <div class="col-md-6 col-lg-3">
+                        <button formaction="/Reports/PendingReturnReport"
+                                class="btn btn-outline-warning w-100 p-4">
+
+                            <h5>⏳ Pending Returns</h5>
+
+                            <small>
+                                Stones not returned yet
+                            </small>
+
+                        </button>
+                    </div>
+
+                    <div class="col-md-6 col-lg-3">
+                        <button formaction="/Reports/ReturnReport"
+                                class="btn btn-outline-success w-100 p-4">
+
+                            <h5>✅ Returned Stones</h5>
+
+                            <small>
+                                All returned stones
+                            </small>
+
+                        </button>
+                    </div>
+
+                    <div class="col-md-6 col-lg-3">
+                        <button formaction="/Reports/RepeatedReport"
+                                class="btn btn-outline-info w-100 p-4">
+
+                            <h5>🔁 Repeated Stones</h5>
+
+                            <small>
+                                Repeat history report
+                            </small>
+
+                        </button>
+                    </div>
+
+                </div>
+
+            </form>
+
+        </div>
+
+    </div>
+
+</div>

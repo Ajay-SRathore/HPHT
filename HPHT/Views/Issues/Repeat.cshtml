@@ -1,0 +1,354 @@
+﻿@{
+    ViewData["Title"] = "Repeat Stones";
+}
+
+<h2>Repeat Stones</h2>
+
+<div class="row mb-3">
+
+    <div class="col-md-3">
+        <label>Client Code</label>
+
+        <input type="number"
+               id="clientCode"
+               class="form-control" />
+    </div>
+
+    <div class="col-md-3">
+        <label>KAID</label>
+
+        <input type="text"
+               id="kaid"
+               class="form-control" />
+    </div>
+
+    <div class="col-md-3">
+
+        <br />
+
+        <button class="btn btn-primary"
+                onclick="searchStone()">
+
+            Search
+
+        </button>
+
+    </div>
+
+</div>
+
+<hr />
+
+<table class="table table-bordered"
+       id="resultTable">
+</table>
+
+<button id="saveBtn"
+        class="btn btn-success"
+        style="display:none"
+        onclick="saveRepeat()">
+
+    Save Repeat
+
+</button>
+
+<script>
+
+    let result = [];
+
+    function searchStone() {
+
+        const clientCode =
+            document
+                .getElementById(
+                    "clientCode"
+                )
+                .value;
+
+        const kaid =
+            document
+                .getElementById(
+                    "kaid"
+                )
+                .value;
+
+        fetch(
+            `/api/issues/repeat-search?clientCode=${clientCode}&kaid=${kaid}`
+        )
+            .then(
+                r => r.json()
+            )
+            .then(
+                data => {
+
+                    result = data;
+
+                    renderTable(
+                        data
+                    );
+
+                }
+            );
+    }
+
+    function renderTable(data) {
+
+        let html = `
+            <thead>
+
+            <tr>
+
+            <th>Repeat</th>
+
+            <th>KAID</th>
+
+            <th>Client</th>
+
+            <th>Shape</th>
+
+            <th>Weight</th>
+
+            <th>Return Weight</th>
+            <th>Last Repeat Weight</th>
+                 <th>Repeat Count</th>
+
+            <th>Repeat Weight</th>
+
+           
+
+            </tr>
+
+            </thead>
+
+            <tbody>
+                `; console.log(data);
+
+        data.forEach(x => {
+
+            html += `
+
+            <tr
+            data-id="${x.id}"
+            data-kaid="${x.kaid}"
+            >
+
+            <td>
+
+              <input type="checkbox"
+           class="repeat-check"
+           ${!x.isReturned ? 'disabled' : ''} />
+
+            </td>
+
+            <td>
+
+            ${x.kaid}
+
+            </td>
+
+            <td>
+
+            ${x.clientname}
+
+            </td>
+
+            <td>
+
+            ${x.shape}
+
+            </td>
+                <td>
+
+                ${x.issueWeight}
+
+                </td>
+
+            <td>
+
+            ${x.returnWeight ?? ''}
+
+            </td>
+                <td>
+
+                ${x.repeatWeight ?? ''}
+
+                </td>
+                     <td>
+
+                    ${x.repeatCount}
+
+                    </td>
+            <td>
+
+            <input
+            type="number"
+            step="0.001"
+            class="form-control repeat-weight"/>
+
+            </td>
+
+            
+
+            </tr>
+
+            `;
+
+        });
+
+        html += `
+            </tbody>
+            `;
+
+        document
+            .getElementById(
+                "resultTable"
+            )
+            .innerHTML =
+            html;
+
+        document
+            .getElementById(
+                "saveBtn"
+            )
+            .style
+            .display =
+            data.length
+                ?
+                "inline-block"
+                :
+                "none";
+    }
+
+    function saveRepeat() {
+
+        let rows = [];
+
+        document
+            .querySelectorAll(
+                "#resultTable tbody tr"
+            )
+            .forEach(r => {
+
+                const checked =
+                    r.querySelector(
+                        ".repeat-check"
+                    )
+                        .checked;
+
+                if (!checked)
+                    return;
+
+                rows.push({
+
+                    id:
+                        parseInt(
+                            r.dataset.id
+                        ),
+
+                    kaid:
+                        r.dataset.kaid,
+
+                    isRepeat:
+                        true,
+
+                    repeatWeight:
+                        parseFloat(
+                            r.querySelector(
+                                ".repeat-weight"
+                            )
+                                .value
+                        )
+
+                });
+
+            });
+
+        if (
+            rows.length === 0
+        ) {
+
+            alert(
+                "Select at least one stone"
+            );
+
+            return;
+
+        }
+
+        fetch(
+            "/api/issues/save-repeat",
+            {
+
+                method:
+                    "POST",
+
+                headers: {
+                    "Content-Type":
+                        "application/json"
+                },
+
+                body:
+                    JSON.stringify(
+                        rows
+                    )
+
+            })
+            .then(
+                async r => {
+
+                    const txt =
+                        await r.text();
+
+                    if (!r.ok)
+                        throw txt;
+
+                    return JSON.parse(
+                        txt
+                    );
+
+                })
+            .then(
+                data => {
+
+                    let msg =
+                        `Repeated ${data.updatedCount} stones`;
+
+                    if (
+                        data.failed
+                        &&
+                        data.failed.length
+                    ) {
+
+                        msg +=
+                            `\n\nFailed:\n`;
+
+                        msg +=
+                            data.failed.join(
+                                "\n"
+                            );
+
+                    }
+
+                    alert(
+                        msg
+                    );
+
+                    searchStone();
+
+                })
+            .catch(
+                e => {
+
+                    console.log(
+                        e
+                    );
+
+                    alert(
+                        e
+                    );
+
+                });
+
+    }
+
+</script>
