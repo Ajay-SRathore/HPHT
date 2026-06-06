@@ -442,27 +442,45 @@
                 }
             );
 
+        if (response.ok) {
+            const blob =
+                await response.blob();
 
-        if (
-            response.ok
-        ) {
+            const url =
+                window.URL.createObjectURL(blob);
+
+            const a =
+                document.createElement("a");
+
+            a.href = url;
+
+            a.download =
+                `HPHT_Issue_${new Date().toISOString().slice(0, 10)}.xlsx`;
+
+            document.body.appendChild(a);
+
+            a.click();
+
+            a.remove();
+
+            window.URL.revokeObjectURL(url);
 
             alert(
                 "Records saved successfully"
             );
 
-            window.location.href =
-                "/Issues";
+            setTimeout(() => {
 
+                window.location.href =
+                    "/Issues";
+
+            }, 1000);
         }
-
         else {
-
             alert(
                 "Error while saving"
             );
-
-        }
+        }       
 
     }
 

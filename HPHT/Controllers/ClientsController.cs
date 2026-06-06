@@ -7,9 +7,11 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using HPHT.Data;
 using HPHT.Models;
+using Microsoft.AspNetCore.Authorization;
 
 namespace HPHT.Controllers
 {
+    [Authorize(Roles = "Admin")]
     public class ClientsController : Controller
     {
         private readonly ApplicationDbContext _context;

@@ -1,9 +1,11 @@
 using HPHT.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Diagnostics;
 
 namespace HPHT.Controllers
 {
+    [Authorize]
     public class HomeController : Controller
     {
         private readonly ILogger<HomeController> _logger;
@@ -13,10 +15,17 @@ namespace HPHT.Controllers
             _logger = logger;
         }
 
+        [Authorize]
+
+        [Authorize]
         public IActionResult Index()
         {
-            return View();
+            if (User.IsInRole("Admin"))
+                return View();
+
+            return RedirectToAction("Index", "Issues");
         }
+
 
         public IActionResult Privacy()
         {
