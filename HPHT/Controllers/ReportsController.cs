@@ -1,5 +1,6 @@
 ﻿using HPHT.Data;
 using HPHT.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
@@ -7,6 +8,7 @@ using OfficeOpenXml;
 
 namespace HPHT.Controllers
 {
+    [Authorize(Roles = "Admin,User")]
     public class ReportsController : Controller
     {
         private readonly ApplicationDbContext _context;

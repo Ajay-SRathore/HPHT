@@ -19,24 +19,66 @@
                     <span class="navbar-toggler-icon"></span>
                 </button>
                 <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
-                    <ul class="navbar-nav flex-grow-1">
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Index">Home</a>
-                        </li>
-                                                <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Issues" asp-action="Index">Issue</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark"
-                               asp-controller="Reports"
-                               asp-action="Index">
-                                Reports
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
-                        </li>
-                    </ul>
+                    @if (User.Identity?.IsAuthenticated ?? false)
+                    {
+                        <ul class="navbar-nav flex-grow-1">
+
+                            @if (User.IsInRole("Admin"))
+                            {
+                                <li class="nav-item">
+                                    <a class="nav-link text-dark"
+                                       asp-controller="Home"
+                                       asp-action="Index">
+                                        Dashboard
+                                    </a>
+                                </li>
+
+                                <li class="nav-item">
+                                    <a class="nav-link text-dark"
+                                       asp-controller="Clients"
+                                       asp-action="Index">
+                                        Clients
+                                    </a>
+                                </li>
+
+                                <li class="nav-item">
+                                    <a class="nav-link text-dark"
+                                       asp-controller="UserManagement"
+                                       asp-action="Index">
+                                        Users
+                                    </a>
+                                </li>
+                            }
+
+                            @if (User.IsInRole("Admin") || User.IsInRole("User"))
+                            {
+                                <li class="nav-item">
+                                    <a class="nav-link text-dark"
+                                       asp-controller="Issues"
+                                       asp-action="Index">
+                                        Issue
+                                    </a>
+                                </li>
+
+                                <li class="nav-item">
+                                    <a class="nav-link text-dark"
+                                       asp-controller="Issues"
+                                       asp-action="Return">
+                                        Return
+                                    </a>
+                                </li>
+
+                                <li class="nav-item">
+                                    <a class="nav-link text-dark"
+                                       asp-controller="Reports"
+                                       asp-action="Index">
+                                        Reports
+                                    </a>
+                                </li>
+                            }
+
+                        </ul>
+                    }
                     <partial name="_LoginPartial" />
                 </div>
             </div>
@@ -46,6 +88,12 @@
         <main role="main" class="pb-3">
             @RenderBody()
         </main>
+    </div>
+    <div style="background:yellow;padding:10px">
+        User : @User.Identity?.Name <br />
+        Authenticated : @User.Identity?.IsAuthenticated <br />
+        Admin : @User.IsInRole("Admin") <br />
+        UserRole : @User.IsInRole("User")
     </div>
 
     <footer class="border-top footer text-muted">

@@ -1,4 +1,6 @@
-﻿namespace HPHT.Models
+﻿using System.ComponentModel.DataAnnotations.Schema;
+
+namespace HPHT.Models
 {
 
     public class Issues
@@ -28,6 +30,7 @@
         public string? ROUGHTYPE { get; set; }
 
         public DateTime? RETURNDATE { get; set; }
+        [Column(TypeName = "decimal(18,2)")]
         public decimal? RETURNWEIGHT { get; set; }
         public int RepeatCount { get; set; }
         public string? ClientId { get; set; }
@@ -41,6 +44,17 @@
         public DateTime? RepeatDate { get; set; }
 
         public string? RepeatBy { get; set; }
+        // Issue Audit
+        public DateTime CreatedDate { get; set; }
+        public string? CreatedBy { get; set; }
+
+        // Update Audit
+        public DateTime? ModifiedDate { get; set; }
+        public string? ModifiedBy { get; set; }
+
+        // Return Audit
+        public string? ReturnedBy { get; set; }
+        public DateTime? ReturnedOn { get; set; }
     }
 
 }

@@ -8,12 +8,13 @@ using Microsoft.EntityFrameworkCore;
 using HPHT.Data;
 using HPHT.Models;
 using OfficeOpenXml;
+using Microsoft.AspNetCore.Authorization;
 
 
 namespace HPHT.Controllers
 {
 
-
+    [Authorize(Roles = "Admin,User")]
     public class IssuesController : Controller
     {
         private readonly ApplicationDbContext _context;

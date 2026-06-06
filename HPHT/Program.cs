@@ -1,4 +1,5 @@
-﻿using HPHT.Data;
+﻿
+using HPHT.Data;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using NuGet.Packaging;
@@ -16,8 +17,18 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(connectionString));
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
-builder.Services.AddDefaultIdentity<IdentityUser>(options => options.SignIn.RequireConfirmedAccount = true)
-    .AddEntityFrameworkStores<ApplicationDbContext>();
+builder.Services.AddDefaultIdentity<IdentityUser>(options =>
+{
+    options.SignIn.RequireConfirmedAccount = false;
+})
+.AddRoles<IdentityRole>()
+.AddEntityFrameworkStores<ApplicationDbContext>();
+
+builder.Services.ConfigureApplicationCookie(options =>
+{
+    options.LoginPath = "/Account/Login";
+    options.AccessDeniedPath = "/Account/AccessDenied";
+});
 builder.Services.AddControllersWithViews();
 builder.Services.AddCors(o =>
     o.AddPolicy("all", b =>
@@ -45,6 +56,7 @@ app.UseRouting();
 
 
 app.UseCors("all");
+app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 
@@ -52,5 +64,11 @@ app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
 app.MapRazorPages();
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
 
+    await RoleSeeder.SeedRolesAsync(services);
+    await RoleSeeder.SeedAdminAsync(services);
+}
 app.Run();

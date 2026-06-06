@@ -1,5 +1,6 @@
 ﻿using HPHT.Data;
 using HPHT.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OfficeOpenXml;
@@ -7,7 +8,7 @@ using System.Text.Json;
 
 namespace HPHT.Controllers
 {
-
+    [Authorize(Roles = "Admin,User")]
     [Route("api/issues")]
     [ApiController]
     public class IssuesApiController : ControllerBase
@@ -131,9 +132,12 @@ namespace HPHT.Controllers
                         continue;
                     }
 
+                
                     item.IssueDate = DateTime.Now;
+                    item.IssuedBy = User.Identity?.Name;
 
-                    item.IssuedBy = "admin";
+                    item.CreatedDate = DateTime.Now;
+                    item.CreatedBy = User.Identity?.Name;
 
                     item.IsReturned = false;
 
@@ -298,20 +302,19 @@ namespace HPHT.Controllers
                 ws.Cells[row, 10].Value =
                     item.ROUGHTYPE;
 
-                ws.Cells[row, 11].Value =
-                    item.Exp;
+                
 
-                ws.Cells[row, 12].Value =
-                    item.RETURNDATE;
+                //ws.Cells[row, 11].Value =
+                //    item.RETURNDATE;
 
-                ws.Cells[row, 12]
-                    .Style.Numberformat.Format =
-                    "dd-MM-yyyy";
+                //ws.Cells[row, 11]
+                //    .Style.Numberformat.Format =
+                //    "dd-MM-yyyy";
+
+                //ws.Cells[row, 12].Value =
+                //    item.RETURNWEIGHT;
 
                 ws.Cells[row, 13].Value =
-                    item.RETURNWEIGHT;
-
-                ws.Cells[row, 14].Value =
                     item.Remarks;
 
                 row++;
@@ -419,6 +422,7 @@ namespace HPHT.Controllers
                 issue.RepeatWeight = row.RepeatWeight;
 
                 issue.RepeatDate = DateTime.Now;
+                issue.RepeatBy = User.Identity?.Name;
 
                 updated++;
             }
@@ -491,16 +495,16 @@ namespace HPHT.Controllers
                     // ============================================
 
                     existingIssue.RETURNDATE =
-                        item.RETURNDATE;
+                        DateTime.Now;
 
                     existingIssue.RETURNWEIGHT =
                         item.RETURNWEIGHT;
 
                     existingIssue.Remarks =
                         item.Remarks;
-
-                    existingIssue.IsReturned =
-                        true;
+                    existingIssue.ReturnedBy = User.Identity?.Name;
+                    existingIssue.ReturnedOn = DateTime.Now;
+                    existingIssue.IsReturned = true;
 
                     updatedRecords.Add(existingIssue);
 
