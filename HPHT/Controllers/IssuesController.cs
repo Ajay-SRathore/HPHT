@@ -150,12 +150,12 @@ namespace HPHT.Controllers
 
             return View(issue);
         }
-        [HttpGet("clients")]
-        public async Task<IActionResult> GetClients()
-        {
-            var data = await _context.Clients.ToListAsync();
-            return Ok(data);
-        }
+        //[HttpGet("clients")]
+        //public async Task<IActionResult> GetClients()
+        //{
+        //    var data = await _context.Clients.ToListAsync();
+        //    return Ok(data);
+        //}
 
         // GET: Issues/Create
         public IActionResult Create()
