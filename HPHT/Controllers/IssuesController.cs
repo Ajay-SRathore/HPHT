@@ -150,12 +150,12 @@ namespace HPHT.Controllers
 
             return View(issue);
         }
-        [HttpGet("clients")]
-        public async Task<IActionResult> GetClients()
-        {
-            var data = await _context.Clients.ToListAsync();
-            return Ok(data);
-        }
+        //[HttpGet("clients")]
+        //public async Task<IActionResult> GetClients()
+        //{
+        //    var data = await _context.Clients.ToListAsync();
+        //    return Ok(data);
+        //}
 
         // GET: Issues/Create
         public IActionResult Create()
@@ -196,7 +196,7 @@ namespace HPHT.Controllers
         }
 
         // POST: Issues/Edit/5
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
+        // To protect from overpostingf attacks, enable the specific properties you want to bind to.
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]

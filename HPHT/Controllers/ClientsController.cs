@@ -8,10 +8,13 @@ using Microsoft.EntityFrameworkCore;
 using HPHT.Data;
 using HPHT.Models;
 using Microsoft.AspNetCore.Authorization;
+using OfficeOpenXml;
 
 namespace HPHT.Controllers
 {
     [Authorize(Roles = "Admin")]
+
+
     public class ClientsController : Controller
     {
         private readonly ApplicationDbContext _context;
@@ -19,6 +22,72 @@ namespace HPHT.Controllers
         public ClientsController(ApplicationDbContext context)
         {
             _context = context;
+        }
+       [HttpPost]
+[Route("api/clients/upload")]
+        public async Task<IActionResult> Upload(
+            IFormFile file)
+        {
+            if (file == null)
+                return BadRequest("No file selected");
+
+            ExcelPackage.LicenseContext =
+                LicenseContext.NonCommercial;
+
+            using var stream =
+                new MemoryStream();
+
+            await file.CopyToAsync(stream);
+
+            using var package =
+                new ExcelPackage(stream);
+
+            var sheet =
+                package.Workbook.Worksheets[0];
+
+            List<Clients> clients =
+                new();
+
+            for (int row = 2;
+                 row <= sheet.Dimension.Rows;
+                 row++)
+            {
+                string name =
+                    sheet.Cells[row, 1].Text;
+
+                string codeText =
+                    sheet.Cells[row, 2].Text;
+
+                if (string.IsNullOrWhiteSpace(name))
+                    continue;
+
+                int code =
+                    int.Parse(codeText);
+
+                bool exists =
+                    _context.Clients.Any(
+                        x => x.ClientCode == code);
+
+                if (exists)
+                    continue;
+
+                clients.Add(
+                    new Clients
+                    {
+                        ClientCode = code,
+                        Name = name
+                    });
+            }
+
+            await _context.Clients
+                .AddRangeAsync(clients);
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new
+            {
+                inserted = clients.Count
+            });
         }
 
         // GET: Clients

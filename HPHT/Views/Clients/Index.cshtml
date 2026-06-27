@@ -9,6 +9,53 @@
 <p>
     <a asp-action="Create">Create New</a>
 </p>
+<div class="mb-3">
+
+    <input type="file"
+           id="excelFile"
+           class="form-control" />
+
+    <button class="btn btn-success mt-2"
+            onclick="uploadClients()">
+        Upload Excel
+    </button>
+
+</div>
+<script>
+
+    async function uploadClients() {
+        let file =
+            document.getElementById("excelFile")
+                .files[0];
+
+        if (!file) {
+            alert("Select Excel file");
+            return;
+        }
+
+        let fd = new FormData();
+
+        fd.append("file", file);
+
+        let response =
+            await fetch(
+                "/api/clients/upload",
+                {
+                    method: "POST",
+                    body: fd
+                });
+
+        if (response.ok) {
+            alert("Clients uploaded successfully");
+            location.reload();
+        }
+        else {
+            let msg = await response.text();
+            alert(msg);
+        }
+    }
+
+</script>
 <table class="table">
     <thead>
         <tr>
@@ -33,3 +80,5 @@
 }
     </tbody>
 </table>
+
+
