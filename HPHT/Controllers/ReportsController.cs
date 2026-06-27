@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using OfficeOpenXml;
+using System.IO.Compression;
 
 namespace HPHT.Controllers
 {
@@ -61,8 +62,10 @@ namespace HPHT.Controllers
             var data = await query
                 .OrderByDescending(x => x.IssueDate)
                 .ToListAsync();
-
-            return GenerateExcel(data, "Issued_Stones_Report");
+            return GenerateZip(
+    data,
+    "Issued_Stones_Report");
+            //  return GenerateExcel(data, "Issued_Stones_Report");
         }
 
         // ==========================
@@ -94,10 +97,10 @@ namespace HPHT.Controllers
             }
 
             var data = await query
-                .OrderByDescending(x => x.IssueDate)
+                .OrderBy(x => x.IssueDate)
                 .ToListAsync();
 
-            return GenerateExcel(data, "Pending_Return_Report");
+            return GenerateZip(data, "Pending_Return_Report");
         }
 
         // ==========================
@@ -129,10 +132,10 @@ namespace HPHT.Controllers
             }
 
             var data = await query
-                .OrderByDescending(x => x.RETURNDATE)
+                .OrderBy(x => x.RETURNDATE)
                 .ToListAsync();
 
-            return GenerateExcel(data, "Returned_Stones_Report");
+            return GenerateZip(data, "Returned_Stones_Report");
         }
 
         public async Task<IActionResult> RepeatedReport(
@@ -161,12 +164,150 @@ namespace HPHT.Controllers
             }
 
             var data = await query
-                .OrderByDescending(x => x.RepeatDate)
+                .OrderBy(x => x.RepeatDate)
                 .ToListAsync();
 
             return GenerateRepeatExcel(
                 data,
                 "Repeated_Stones_Report");
+        }
+
+        private FileResult GenerateZip(
+    List<Issues> data,
+    string reportName)
+        {
+            ExcelPackage.LicenseContext =
+                LicenseContext.NonCommercial;
+
+            using var zipStream =
+                new MemoryStream();
+
+            using (var archive =
+                new ZipArchive(
+                    zipStream,
+                    ZipArchiveMode.Create,
+                    true))
+            {
+                var clientGroups =
+                    data.GroupBy(x =>
+                        x.Client?.Name ?? "Unknown");
+
+                foreach (var group in clientGroups)
+                {
+                    using var package =
+                        new ExcelPackage();
+
+                    var ws =
+                        package.Workbook.Worksheets
+                            .Add("Report");
+                    ws.Cells["A1"].Value = "Client Name";
+                    ws.Cells["B1"].Value = group.Key;
+
+                    ws.Cells["A2"].Value = "Number Of Stones";
+                    ws.Cells["B2"].Value = group.Count();
+
+                    ws.Cells["A3"].Value = "Total Issue Weight";
+                    ws.Cells["B3"].Value =
+                        group.Sum(x => x.IssueWeight ?? 0);
+
+                    ws.Cells["A1:B3"].Style.Font.Bold = true;
+
+                    // HEADER
+
+                    ws.Cells["A1"].Value = "Client Name";
+                    ws.Cells["B1"].Value = group.Key;
+
+                    ws.Cells["A2"].Value = "Number Of Stones";
+                    ws.Cells["B2"].Value = group.Count();
+
+                    ws.Cells["A3"].Value = "Total Issue Weight";
+                    ws.Cells["B3"].Value =
+                        group.Sum(x => x.IssueWeight ?? 0);
+
+                    ws.Cells["A1:B3"].Style.Font.Bold = true;
+
+                    // TABLE HEADER
+
+                    int headerRow = 5;
+
+
+                    ws.Cells[headerRow, 1].Value = "ClientId";
+                    ws.Cells[headerRow, 2].Value = "Client Name";
+                    ws.Cells[headerRow, 3].Value = "Issue Weight";
+                    ws.Cells[headerRow, 4].Value = "Issue Date";
+                    ws.Cells[headerRow, 5].Value = "Return Date";
+                    ws.Cells[headerRow, 6].Value = "Return Weight";
+                    ws.Cells[headerRow, 7].Value = "Remarks";
+
+                    using (var range =
+                        ws.Cells[headerRow, 1, headerRow, 8])
+                    {
+                        range.Style.Font.Bold = true;
+                    }
+
+                    int row = 6;
+
+                    foreach (var item in group)
+                    {
+                        ws.Cells[row, 1].Value = item.ClientId;
+
+                        ws.Cells[row, 2].Value = item.Client?.Name;
+                        ws.Cells[row, 3].Value =
+    item.IssueWeight;
+
+                        ws.Cells[row, 4].Value =
+                            item.IssueDate;
+
+                        ws.Cells[row, 4]
+                            .Style.Numberformat.Format =
+                            "dd-MM-yyyy";
+
+                        ws.Cells[row, 5].Value =
+                            item.RETURNDATE;
+
+                        ws.Cells[row, 5]
+                            .Style.Numberformat.Format =
+                            "dd-MM-yyyy";
+
+                        ws.Cells[row, 6].Value =
+                            item.RETURNWEIGHT;
+
+                        ws.Cells[row, 7].Value =
+                            item.Remarks;
+
+                        row++;
+                    }
+
+                    ws.Cells.AutoFitColumns();
+
+                    var excelBytes =
+                        package.GetAsByteArray();
+
+                    string safeFileName =
+                        string.Join("_",
+                            group.Key.Split(
+                                Path.GetInvalidFileNameChars()));
+
+                    var entry =
+                        archive.CreateEntry(
+                            $"{safeFileName}.xlsx");
+
+                    using var entryStream =
+                        entry.Open();
+
+                    entryStream.Write(
+                        excelBytes,
+                        0,
+                        excelBytes.Length);
+                }
+            }
+
+            zipStream.Position = 0;
+
+            return File(
+                zipStream.ToArray(),
+                "application/zip",
+                $"{reportName}.zip");
         }
         private FileResult GenerateRepeatExcel(
     List<Issues> data,
@@ -222,62 +363,6 @@ namespace HPHT.Controllers
         // ==========================
         // EXCEL GENERATOR
         // ==========================
-        private FileResult GenerateExcel(List<Issues> data, string fileName)
-        {
-            ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
 
-            using var package = new ExcelPackage();
-
-            var ws = package.Workbook.Worksheets.Add("Report");
-
-            // HEADER
-            ws.Cells[1, 1].Value = "KAID";
-            ws.Cells[1, 2].Value = "ClientId";
-            ws.Cells[1, 3].Value = "Client Name";
-            ws.Cells[1, 4].Value = "Lot No";
-            ws.Cells[1, 5].Value = "Pkt No";
-            ws.Cells[1, 6].Value = "PCS";
-            ws.Cells[1, 7].Value = "Issue Weight";
-            ws.Cells[1, 8].Value = "Issue Date";
-            ws.Cells[1, 9].Value = "Return Date";
-            ws.Cells[1, 10].Value = "Return Weight";
-            ws.Cells[1, 11].Value = "Price";
-            ws.Cells[1, 12].Value = "Remarks";
-
-            int row = 2;
-
-            foreach (var item in data)
-            {
-                ws.Cells[row, 1].Value = item.KAID;
-                ws.Cells[row, 2].Value = item.ClientId;
-                ws.Cells[row, 3].Value = item.Client?.Name;
-                ws.Cells[row, 4].Value = item.LotNo;
-                ws.Cells[row, 5].Value = item.PktNo;
-                ws.Cells[row, 6].Value = item.PCS;
-                ws.Cells[row, 7].Value = item.IssueWeight;
-                ws.Cells[row, 8].Value = item.IssueDate;
-                ws.Cells[row, 8].Style.Numberformat.Format = "dd-MM-yyyy";
-                ws.Cells[row, 9].Value = item.RETURNDATE;
-                ws.Cells[row, 9].Style.Numberformat.Format = "dd-MM-yyyy";
-                ws.Cells[row, 10].Value = item.RETURNWEIGHT;
-                ws.Cells[row, 11].Value = item.Price;
-                ws.Cells[row, 12].Value = item.Remarks;
-
-                row++;
-            }
-
-            ws.Cells.AutoFitColumns();
-
-            var stream = new MemoryStream();
-
-            package.SaveAs(stream);
-
-            stream.Position = 0;
-
-            return File(
-                stream,
-                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                $"{fileName}.xlsx");
-        }
     }
 }
