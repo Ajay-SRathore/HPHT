@@ -117,34 +117,50 @@ namespace HPHT.Controllers
             {
                 try
                 {
-                    // CHECK DUPLICATE CLIENTID
-                    bool exists = await _context.Issues
-                        .AnyAsync(x => x.ClientId == item.ClientId);
+                    // ============================================
+                    // SKIP BLANK ROWS
+                    // ============================================
 
-                    if (exists)
+                    if (string.IsNullOrWhiteSpace(item.ClientId) &&
+                        string.IsNullOrWhiteSpace(item.KAID) &&
+                        item.ClientCode == null)
+                    {
+                        continue;
+                    }
+
+                    // ============================================
+                    // VALIDATION
+                    // ============================================
+
+                    if (string.IsNullOrWhiteSpace(item.ClientId))
                     {
                         failedData.Add(new
                         {
-                            ClientId = item.ClientId,
-                            Error = "ClientId already exists"
+                            ClientId = "",
+                            Error = "ClientId is required"
                         });
 
                         continue;
                     }
 
-                
-                    item.IssueDate = DateTime.Now;
-                    item.IssuedBy = User.Identity?.Name;
+                    string clientId =
+                        item.ClientId.Trim();
 
-                    item.CreatedDate = DateTime.Now;
-                    item.CreatedBy = User.Identity?.Name;
+                    // ============================================
+                    // FIND EXISTING RECORD
+                    // ============================================
 
-                    item.IsReturned = false;
+                    var existingIssue =
+                        await _context.Issues
+                        .FirstOrDefaultAsync(x =>
+                            x.ClientCode == item.ClientCode &&
+                            x.ClientId != null &&
+                            x.ClientId.Trim() == clientId);
 
-                   // item.ClientCode = ccode;
-
-
+                    // ============================================
                     // IMAGE UPLOAD
+                    // ============================================
+
                     if (files != null &&
                         files.Count > 0 &&
                         files[0] != null)
@@ -170,7 +186,82 @@ namespace HPHT.Controllers
                             "/uploads/issues/" + fileName;
                     }
 
-                    successList.Add(item);
+                    // ============================================
+                    // NEW ISSUE
+                    // ============================================
+
+                    if (existingIssue == null)
+                    {
+                        item.ClientId = clientId;
+
+                        //item.IssueDate =
+                        //    DateTime.Now; Uncomment this code
+
+                        item.IssuedBy =
+                            User.Identity?.Name;
+
+                        item.CreatedDate =
+                            DateTime.Now;
+
+                        item.CreatedBy =
+                            User.Identity?.Name;
+
+                        item.IsReturned =
+                            item.RETURNDATE.HasValue ||
+                            item.RETURNWEIGHT.HasValue;
+
+                        successList.Add(item);
+                    }
+                    else
+                    {
+                        // ============================================
+                        // UPDATE EXISTING RECORD
+                        // ============================================
+
+                        existingIssue.PCS =
+                            item.PCS;
+
+                        existingIssue.IssueWeight =
+                            item.IssueWeight;
+
+                        existingIssue.Shape =
+                            item.Shape;
+
+                        existingIssue.ROUGHTYPE =
+                            item.ROUGHTYPE;
+
+                        existingIssue.Remarks =
+                            item.Remarks;
+
+                        existingIssue.ModifiedDate =
+                            DateTime.Now;
+
+                        existingIssue.ModifiedBy =
+                            User.Identity?.Name;
+
+                        // ============================================
+                        // RETURN UPDATE
+                        // ============================================
+
+                        if (item.RETURNDATE.HasValue ||
+                            item.RETURNWEIGHT.HasValue)
+                        {
+                            existingIssue.RETURNDATE =
+                                item.RETURNDATE;
+
+                            existingIssue.RETURNWEIGHT =
+                                item.RETURNWEIGHT;
+
+                            existingIssue.ReturnedBy =
+                                User.Identity?.Name;
+
+                            existingIssue.ReturnedOn =
+                                DateTime.Now;
+
+                            existingIssue.IsReturned =
+                                true;
+                        }
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -187,8 +278,10 @@ namespace HPHT.Controllers
             // SAVE SUCCESS RECORDS
             // ============================================
 
+
+
             await _context.Issues
-                .AddRangeAsync(successList);
+    .AddRangeAsync(successList);
 
             await _context.SaveChangesAsync();
 
@@ -199,8 +292,8 @@ namespace HPHT.Controllers
 
             foreach (var item in successList)
             {
-                item.KAID =
-                    $"{item.ClientCode}KHT-{item.Id:D3}";
+                //item.KAID =
+                //    $"{item.ClientCode}KHT-{item.Id:D3}"; Uncomment this line
             }
 
             await _context.SaveChangesAsync();
