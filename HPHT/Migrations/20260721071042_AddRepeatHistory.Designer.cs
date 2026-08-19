@@ -4,6 +4,7 @@ using HPHT.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace HPHT.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260721071042_AddRepeatHistory")]
+    partial class AddRepeatHistory
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -194,7 +197,7 @@ namespace HPHT.Migrations
                     b.Property<DateTime>("RepeatIssueDate")
                         .HasColumnType("datetime2");
 
-                    b.Property<decimal>("RepeatIssueWeight")
+                    b.Property<decimal?>("RepeatIssueWeight")
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<int>("RepeatNo")

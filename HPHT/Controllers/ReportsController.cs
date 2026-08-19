@@ -155,20 +155,18 @@ namespace HPHT.Controllers
 
             if (fromDate.HasValue)
             {
-                query = query.Where(x => x.RepeatDate >= fromDate.Value);
+               
             }
 
             if (toDate.HasValue)
             {
-                query = query.Where(x => x.RepeatDate <= toDate.Value);
+               
             }
 
-            var data = await query
-                .OrderBy(x => x.RepeatDate)
-                .ToListAsync();
+         
 
             return GenerateRepeatExcel(
-                data,
+                null,
                 "Repeated_Stones_Report");
         }
 
@@ -309,6 +307,182 @@ namespace HPHT.Controllers
                 "application/zip",
                 $"{reportName}.zip");
         }
+        private FileResult GenerateClientSummaryReport(
+    List<Issues> data,
+    string fileName)
+        {
+            ExcelPackage.LicenseContext =
+                LicenseContext.NonCommercial;
+
+            using var package =
+                new ExcelPackage();
+
+            var ws =
+                package.Workbook.Worksheets
+                .Add("Client Summary");
+
+            int row = 1;
+
+            var groups =
+                data.GroupBy(x => x.Client?.Name);
+
+            foreach (var group in groups)
+            {
+                ws.Cells[row, 1].Value =
+                    "Client Name";
+
+                ws.Cells[row, 2].Value =
+                    group.Key;
+
+                row++;
+
+                ws.Cells[row, 1].Value =
+                    "Issue Count";
+
+                ws.Cells[row, 2].Value =
+                    group.Count();
+
+                row++;
+
+                ws.Cells[row, 1].Value =
+                    "Returned Count";
+
+                ws.Cells[row, 2].Value =
+                    group.Count(x => x.IsReturned);
+
+                row++;
+
+                ws.Cells[row, 1].Value =
+                    "Pending Count";
+
+                ws.Cells[row, 2].Value =
+                    group.Count(x => !x.IsReturned);
+
+                row++;
+
+                ws.Cells[row, 1].Value =
+                    "Repeated Count";
+
+                ws.Cells[row, 2].Value =
+                    group.Count(x => x.IsRepeat);
+
+                row++;
+
+                ws.Cells[row, 1].Value =
+                    "Total Issue Weight";
+
+                ws.Cells[row, 2].Value =
+                    group.Sum(x => x.IssueWeight ?? 0);
+
+                row++;
+
+                ws.Cells[row, 1].Value =
+                    "Total Return Weight";
+
+                ws.Cells[row, 2].Value =
+                    group.Sum(x => x.RETURNWEIGHT ?? 0);
+
+                row += 2;
+
+                // Header
+
+                ws.Cells[row, 1].Value = "Client ID";
+                ws.Cells[row, 2].Value = "KAID";
+                ws.Cells[row, 3].Value = "Issue Weight";
+                ws.Cells[row, 4].Value = "Return Weight";
+                ws.Cells[row, 5].Value = "Status";
+                ws.Cells[row, 6].Value = "Repeat Status";
+                ws.Cells[row, 7].Value = "Repeat Count";
+                ws.Cells[row, 8].Value = "Remarks";
+
+                using (var range =
+                    ws.Cells[row, 1, row, 8])
+                {
+                    range.Style.Font.Bold = true;
+                }
+
+                row++;
+
+                foreach (var item in group)
+                {
+                    ws.Cells[row, 1].Value =
+                        item.ClientId;
+
+                    ws.Cells[row, 2].Value =
+                        item.KAID;
+
+                    ws.Cells[row, 3].Value =
+                        item.IssueWeight;
+
+                    ws.Cells[row, 4].Value =
+                        item.RETURNWEIGHT;
+
+                    ws.Cells[row, 5].Value =
+                        item.IsReturned
+                            ? "Returned"
+                            : "Pending";
+
+                    ws.Cells[row, 6].Value =
+                        item.IsRepeat
+                            ? "Repeated"
+                            : "No";
+
+                    ws.Cells[row, 7].Value =
+                        item.RepeatCount;
+
+                    ws.Cells[row, 8].Value =
+                        item.Remarks;
+
+                    row++;
+                }
+
+                row += 3;
+            }
+
+            ws.Cells.AutoFitColumns();
+
+            var stream = new MemoryStream();
+
+            package.SaveAs(stream);
+
+            return File(
+                stream.ToArray(),
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                $"{fileName}.xlsx");
+        }
+        public async Task<IActionResult> ClientSummaryReportAll(
+    int? ccode,
+    DateTime? fromDate,
+    DateTime? toDate)
+        {
+            var query = _context.Issues
+                .Include(x => x.Client)
+                .AsQueryable();
+            if (ccode.HasValue)
+            {
+                query = query.Where(x => x.ClientCode == ccode);
+            }
+            if (fromDate.HasValue)
+            {
+                query = query.Where(x =>
+                    x.IssueDate >= fromDate.Value);
+            }
+
+            if (toDate.HasValue)
+            {
+                query = query.Where(x =>
+                    x.IssueDate <= toDate.Value);
+            }
+
+            var data = await query
+                .OrderBy(x => x.ClientCode)
+                .ThenBy(x => x.ClientId)
+                .ToListAsync();
+
+            return GenerateClientSummaryReport(
+                data,
+                "Client_Summary_Report");
+        }
         private FileResult GenerateRepeatExcel(
     List<Issues> data,
     string fileName)
@@ -332,14 +506,12 @@ namespace HPHT.Controllers
 
             int row = 2;
 
-            foreach (var item in data)
+            foreach (var item in data) 
             {
                 ws.Cells[row, 1].Value = item.KAID;
                 ws.Cells[row, 2].Value = item.Client?.Name;
                 ws.Cells[row, 3].Value = item.IssueWeight;
-                ws.Cells[row, 4].Value = item.RETURNWEIGHT;
-                ws.Cells[row, 5].Value = item.RepeatWeight;
-                ws.Cells[row, 6].Value = item.RepeatDate;
+                ws.Cells[row, 4].Value = item.RETURNWEIGHT;              
                 ws.Cells[row, 6].Style.Numberformat.Format =
                     "dd-MM-yyyy";
                 ws.Cells[row, 7].Value = item.RepeatCount;

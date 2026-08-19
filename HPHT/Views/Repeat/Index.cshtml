@@ -1,0 +1,242 @@
+﻿@{
+    ViewData["Title"] = "Repeat Upload";
+}
+
+<div class="card shadow">
+
+    <div class="card-header bg-primary text-white">
+
+        <h3>
+            Repeat Upload
+        </h3>
+
+    </div>
+
+    <div class="card-body">
+
+        <div class="row">
+
+            <div class="col-md-6">
+
+                <label class="form-label">
+
+                    Upload Excel
+
+                </label>
+
+                <input type="file"
+                       id="excelFile"
+                       class="form-control"
+                       accept=".xlsx,.xls"/>
+
+            </div>
+
+            <div class="col-md-6">
+
+                <br />
+
+                <button
+                    class="btn btn-primary"
+                    onclick="uploadExcel()">
+
+                    Preview
+
+                </button>
+
+                <button
+                    id="btnSave"
+                    class="btn btn-success"
+                    onclick="saveRepeat()"
+                    disabled>
+
+                    Save
+
+                </button>
+
+            </div>
+
+        </div>
+
+        <hr />
+
+        <div class="table-responsive">
+
+            <table
+                class="table table-bordered table-striped"
+                id="previewTable">
+
+            </table>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<script>
+                let previewData = [];
+                async function uploadExcel()
+{
+    const file =
+        document
+        .getElementById("excelFile")
+        .files[0];
+
+    if(!file)
+    {
+        alert("Select Excel.");
+
+        return;
+    }
+
+    let fd =
+        new FormData();
+
+    fd.append("file",file);
+
+    const response =
+        await fetch(
+            "/api/repeat/upload-preview",
+            {
+                method:"POST",
+                body:fd
+            });
+
+    previewData =
+        await response.json();
+
+    renderTable(previewData);
+}function renderTable(data)
+{
+    let html = `
+<table class='table table-bordered'>
+
+<thead>
+
+<tr>
+
+<th>KAID</th>
+
+<th>Repeat Issue Date</th>
+
+<th>Issue Weight</th>
+
+<th>Repeat Return Date</th>
+
+<th>Return Weight</th>
+
+<th>Action</th>
+
+<th>Status</th>
+
+</tr>
+
+</thead>
+
+<tbody>
+`;
+
+    let hasError = false;
+
+    data.forEach(x=>{
+
+        if(x.status!="Ready")
+            hasError=true;
+
+        html+=`
+
+<tr>
+
+<td>${x.kaid}</td>
+
+<td>${x.repeatIssueDate??''}</td>
+
+<td>${x.repeatIssueWeight??''}</td>
+
+<td>${x.repeatReturnDate??''}</td>
+
+<td>${x.repeatReturnWeight??''}</td>
+
+<td>
+
+${x.action}
+
+</td>
+
+<td>
+
+<b class="${
+x.status=="Ready"
+?
+"text-success"
+:
+"text-danger"
+}">
+
+${x.status}
+
+</b>
+
+</td>
+
+</tr>
+
+`;
+
+    });
+
+    html+=`
+
+</tbody>
+
+</table>
+`;
+
+    document
+    .getElementById("previewTable")
+    .innerHTML=html;
+
+    document
+    .getElementById("btnSave")
+    .disabled=hasError;
+}
+    async function saveRepeat()
+    {
+        const response =
+            await fetch(
+                "/api/repeat/save",
+                {
+                    method:"POST",
+
+                    headers:
+                    {
+                        "Content-Type":"application/json"
+                    },
+
+                    body:
+                    JSON.stringify(previewData)
+                });
+
+        const result =
+            await response.json();
+
+        let msg = 
+            `${result.saved} Records Saved`;
+
+        if(result.failed.length)
+        {
+            msg+=`\n\nFailed\n\n`;
+
+            result.failed.forEach(x=>{
+
+                msg+=x+"\n";
+
+            });
+        }
+
+        alert(msg);
+
+        location.reload();
+    }
+</script>

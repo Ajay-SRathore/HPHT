@@ -75,6 +75,17 @@
                                         Reports
                                     </a>
                                 </li>
+                                <li class="nav-item">
+
+                                    <a class="nav-link"
+                                       asp-controller="Repeat"
+                                       asp-action="Index">
+
+                                        Repeat Upload
+
+                                    </a>
+
+                                </li>
                             }
 
                         </ul>
@@ -89,12 +100,12 @@
             @RenderBody()
         </main>
     </div>
-    <div style="background:yellow;padding:10px">
+   @*  <div style="background:yellow;padding:10px">
         User : @User.Identity?.Name <br />
         Authenticated : @User.Identity?.IsAuthenticated <br />
         Admin : @User.IsInRole("Admin") <br />
         UserRole : @User.IsInRole("User")
-    </div>
+    </div> *@
 
     <footer class="border-top footer text-muted">
         <div class="container">

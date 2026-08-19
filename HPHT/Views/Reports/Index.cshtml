@@ -27,7 +27,9 @@
                             Client
                         </label>
 
-                        <select name="ccode" class="form-select">
+                        <select id="ccode"
+                                name="ccode"
+                                class="form-select">
                             <option value="">
                                 -- All Clients --
                             </option>
@@ -47,6 +49,7 @@
                         </label>
 
                         <input type="date"
+                            id="fromDate"
                                name="fromDate"
                                value="@DateTime.Today.AddMonths(-1).ToString("yyyy-MM-dd")"
                                class="form-control" />
@@ -58,6 +61,7 @@
                         </label>
 
                         <input type="date"
+                            id="toDate"
                                name="toDate"
                                value="@DateTime.Today.ToString("yyyy-MM-dd")"
                                class="form-control" />
@@ -121,6 +125,17 @@
 
                         </button>
                     </div>
+                    <div class="col-md-3">
+
+                        <button type="button"
+                                class="btn btn-dark w-100"
+                                onclick="downloadClientSummary()">
+
+                            Client Summary Report
+
+                        </button>
+
+                    </div>
 
                 </div>
 
@@ -131,3 +146,19 @@
     </div>
 
 </div>
+<script>
+function downloadClientSummary()
+{
+    const ccode =
+        document.getElementById("ccode").value;
+
+    const from =
+        document.getElementById("fromDate").value;
+
+    const to =
+        document.getElementById("toDate").value;
+
+    window.location =
+        `/Reports/ClientSummaryReportAll?ccode=${ccode}&fromDate=${from}&toDate=${to}`;
+}
+</script>

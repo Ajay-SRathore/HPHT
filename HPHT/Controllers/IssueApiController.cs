@@ -22,13 +22,13 @@ namespace HPHT.Controllers
 
         [HttpGet("clients")]
         public async Task<IActionResult> GetClients()
-         {
+        {
             var clients = await _context.Clients
                     .Select(c => new
                     {
                         clientCode = c.ClientCode,
                         name = c.Name
-                     
+
                     }).ToListAsync();
             return Ok(clients);
         }
@@ -55,17 +55,17 @@ namespace HPHT.Controllers
                 list.Add(new
                 {
                     srNo = sheet.Cells[i, 1].Text,
-                    ClientName= sheet.Cells[i, 2 ].Text,
+                    ClientName = sheet.Cells[i, 2].Text,
                     ClientCode = sheet.Cells[i, 3].Text,
                     KAID = sheet.Cells[i, 4].Text,
-                    ClientId= sheet.Cells[i, 5].Text,
-                    pcs= sheet.Cells[i, 6].Text,
-                    issueWeight = sheet.Cells[i, 7].Text,                    
+                    ClientId = sheet.Cells[i, 5].Text,
+                    pcs = sheet.Cells[i, 6].Text,
+                    issueWeight = sheet.Cells[i, 7].Text,
                     shape = sheet.Cells[i, 8].Text,
                     issueDate = sheet.Cells[i, 9].Text,
                     roughType = sheet.Cells[i, 10].Text,
-                    returnDate = sheet.Cells[i, 11].Text,                    
-                    returnWeight=  sheet.Cells[i, 12].Text,
+                    returnDate = sheet.Cells[i, 11].Text,
+                    returnWeight = sheet.Cells[i, 12].Text,
                     remarks = sheet.Cells[i, 13].Text,
 
                 });
@@ -74,7 +74,7 @@ namespace HPHT.Controllers
             return Ok(list);  // ✅ only preview
         }
 
-       
+
 
 
         [HttpPost("save-issues")]
@@ -82,371 +82,226 @@ namespace HPHT.Controllers
     [FromForm] string issues,
     [FromForm] List<IFormFile> files)
         {
-            var issueList =
-                JsonSerializer.Deserialize<List<Issues>>(
+            try
+            {
+                var issueList = JsonSerializer.Deserialize<List<Issues>>(
                     issues,
                     new JsonSerializerOptions
                     {
                         PropertyNameCaseInsensitive = true
                     });
 
-            string uploadPath = Path.Combine(
-                Directory.GetCurrentDirectory(),
-                "wwwroot/uploads/issues");
+                if (issueList == null || !issueList.Any())
+                    return BadRequest("No issues found.");
 
-            if (!Directory.Exists(uploadPath))
-                Directory.CreateDirectory(uploadPath);
+                string uploadPath = Path.Combine(
+                    Directory.GetCurrentDirectory(),
+                    "wwwroot/uploads/issues");
 
+                if (!Directory.Exists(uploadPath))
+                    Directory.CreateDirectory(uploadPath);
 
-            // ============================================
-            // SUCCESS / FAILED LIST
-            // ============================================
+                List<Issues> successList = new();
+                List<dynamic> failedData = new();
 
-            List<Issues> successList =
-                new List<Issues>();
-
-            List<dynamic> failedData =
-                new List<dynamic>();
-
-
-            // ============================================
-            // VALIDATION + PROCESSING
-            // ============================================
-
-            foreach (var item in issueList)
-            {
-                try
+                foreach (var item in issueList)
                 {
-                    // ============================================
-                    // SKIP BLANK ROWS
-                    // ============================================
-
-                    if (string.IsNullOrWhiteSpace(item.ClientId) &&
-                        string.IsNullOrWhiteSpace(item.KAID) &&
-                        item.ClientCode == null)
+                    try
                     {
-                        continue;
+                        // Skip blank rows
+                        if (string.IsNullOrWhiteSpace(item.ClientId) &&
+                            string.IsNullOrWhiteSpace(item.KAID) &&
+                            item.ClientCode == null)
+                        {
+                            continue;
+                        }
+
+                        // Validation
+                        if (string.IsNullOrWhiteSpace(item.ClientId))
+                        {
+                            failedData.Add(new
+                            {
+                                ClientId = "",
+                                Error = "ClientId is required"
+                            });
+                            continue;
+                        }
+
+                        if (string.IsNullOrWhiteSpace(item.KAID))
+                        {
+                            failedData.Add(new
+                            {
+                                ClientId = item.ClientId,
+                                Error = "KAID is required"
+                            });
+                            continue;
+                        }
+
+                        string clientId = item.ClientId.Trim();
+                        string kaid = item.KAID.Trim();
+
+                        // Find existing record using KAID + ClientId
+                        var existingIssue = await _context.Issues
+                            .FirstOrDefaultAsync(x =>
+                                x.ClientId == clientId &&
+                                x.KAID == kaid);
+
+                        // Upload Image
+                        if (files != null &&
+                            files.Count > 0 &&
+                            files[0] != null)
+                        {
+                            var file = files[0];
+
+                            string fileName = Guid.NewGuid() +
+                                              Path.GetExtension(file.FileName);
+
+                            string filePath = Path.Combine(uploadPath, fileName);
+
+                            using (var stream = new FileStream(filePath, FileMode.Create))
+                            {
+                                await file.CopyToAsync(stream);
+                            }
+
+                            item.ImagePath = "/uploads/issues/" + fileName;
+                        }
+
+                        if (existingIssue == null)
+                        {
+                            // INSERT
+
+                            item.ClientId = clientId;
+                            item.KAID = kaid;
+
+                            item.IssuedBy = User.Identity?.Name;
+                            item.CreatedDate = DateTime.Now;
+                            item.CreatedBy = User.Identity?.Name;
+
+                            item.IsReturned =
+                                item.RETURNDATE.HasValue ||
+                                item.RETURNWEIGHT.HasValue;
+
+                            successList.Add(item);
+                        }
+                        else
+                        {
+                            // UPDATE
+
+                            existingIssue.ClientCode = item.ClientCode;
+                            existingIssue.PCS = item.PCS;
+                            existingIssue.IssueWeight = item.IssueWeight;
+                            existingIssue.Shape = item.Shape;
+                            existingIssue.ROUGHTYPE = item.ROUGHTYPE;
+                            existingIssue.Remarks = item.Remarks;
+
+                            if (!string.IsNullOrWhiteSpace(item.ImagePath))
+                                existingIssue.ImagePath = item.ImagePath;
+
+                            existingIssue.ModifiedDate = DateTime.Now;
+                            existingIssue.ModifiedBy = User.Identity?.Name;
+
+                            if (item.RETURNDATE.HasValue ||
+                                item.RETURNWEIGHT.HasValue)
+                            {
+                                existingIssue.RETURNDATE = item.RETURNDATE;
+                                existingIssue.RETURNWEIGHT = item.RETURNWEIGHT;
+                                existingIssue.ReturnedBy = User.Identity?.Name;
+                                existingIssue.ReturnedOn = DateTime.Now;
+                                existingIssue.IsReturned = true;
+                            }
+                          
+                        }
                     }
-
-                    // ============================================
-                    // VALIDATION
-                    // ============================================
-
-                    if (string.IsNullOrWhiteSpace(item.ClientId))
+                    catch (Exception ex)
                     {
                         failedData.Add(new
                         {
-                            ClientId = "",
-                            Error = "ClientId is required"
+                            ClientId = item?.ClientId,
+                            KAID = item?.KAID,
+                            Error = ex.Message
                         });
-
-                        continue;
-                    }
-
-                    string clientId =
-                        item.ClientId.Trim();
-
-                    // ============================================
-                    // FIND EXISTING RECORD
-                    // ============================================
-
-                    var existingIssue =
-                        await _context.Issues
-                        .FirstOrDefaultAsync(x =>
-                            x.ClientCode == item.ClientCode &&
-                            x.ClientId != null &&
-                            x.ClientId.Trim() == clientId);
-
-                    // ============================================
-                    // IMAGE UPLOAD
-                    // ============================================
-
-                    if (files != null &&
-                        files.Count > 0 &&
-                        files[0] != null)
-                    {
-                        var file = files[0];
-
-                        string fileName =
-                            Guid.NewGuid() +
-                            Path.GetExtension(file.FileName);
-
-                        string filePath =
-                            Path.Combine(uploadPath, fileName);
-
-                        using (var stream =
-                            new FileStream(
-                                filePath,
-                                FileMode.Create))
-                        {
-                            await file.CopyToAsync(stream);
-                        }
-
-                        item.ImagePath =
-                            "/uploads/issues/" + fileName;
-                    }
-
-                    // ============================================
-                    // NEW ISSUE
-                    // ============================================
-
-                    if (existingIssue == null)
-                    {
-                        item.ClientId = clientId;
-
-                        //item.IssueDate =
-                        //    DateTime.Now; Uncomment this code
-
-                        item.IssuedBy =
-                            User.Identity?.Name;
-
-                        item.CreatedDate =
-                            DateTime.Now;
-
-                        item.CreatedBy =
-                            User.Identity?.Name;
-
-                        item.IsReturned =
-                            item.RETURNDATE.HasValue ||
-                            item.RETURNWEIGHT.HasValue;
-
-                        successList.Add(item);
-                    }
-                    else
-                    {
-                        // ============================================
-                        // UPDATE EXISTING RECORD
-                        // ============================================
-
-                        existingIssue.PCS =
-                            item.PCS;
-
-                        existingIssue.IssueWeight =
-                            item.IssueWeight;
-
-                        existingIssue.Shape =
-                            item.Shape;
-
-                        existingIssue.ROUGHTYPE =
-                            item.ROUGHTYPE;
-
-                        existingIssue.Remarks =
-                            item.Remarks;
-
-                        existingIssue.ModifiedDate =
-                            DateTime.Now;
-
-                        existingIssue.ModifiedBy =
-                            User.Identity?.Name;
-
-                        // ============================================
-                        // RETURN UPDATE
-                        // ============================================
-
-                        if (item.RETURNDATE.HasValue ||
-                            item.RETURNWEIGHT.HasValue)
-                        {
-                            existingIssue.RETURNDATE =
-                                item.RETURNDATE;
-
-                            existingIssue.RETURNWEIGHT =
-                                item.RETURNWEIGHT;
-
-                            existingIssue.ReturnedBy =
-                                User.Identity?.Name;
-
-                            existingIssue.ReturnedOn =
-                                DateTime.Now;
-
-                            existingIssue.IsReturned =
-                                true;
-                        }
                     }
                 }
-                catch (Exception ex)
+
+                if (successList.Any())
                 {
-                    failedData.Add(new
+                    await _context.Issues.AddRangeAsync(successList);
+                }
+
+                try
+                {
+                    await _context.SaveChangesAsync();
+                }
+                catch (DbUpdateException ex)
+                {
+                    return BadRequest(new
                     {
-                        ClientId = item.ClientId,
-                        Error = ex.Message
+                        Message = "Duplicate KAID + ClientId combination found.",
+                        Error = ex.InnerException?.Message ?? ex.Message
                     });
                 }
+
+                // Generate KAID if required
+                /*
+                foreach (var item in successList)
+                {
+                    item.KAID = $"{item.ClientCode}KHT-{item.Id:D3}";
+                }
+                await _context.SaveChangesAsync();
+                */
+
+                if (!successList.Any() && failedData.Any())
+                {
+                    Response.Headers.Add(
+                        "failed-records",
+                        JsonSerializer.Serialize(failedData));
+
+                    return BadRequest("No valid records found.");
+                }
+
+                // Excel Generation
+                ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
+
+                using var package = new ExcelPackage();
+
+                var ws = package.Workbook.Worksheets.Add("Issues");
+
+                ws.Cells[1, 1].Value = "Client ID";
+                ws.Cells[1, 2].Value = "KAID";
+                ws.Cells[1, 3].Value = "Issue Weight";
+
+                int row = 2;
+
+                foreach (var item in successList)
+                {
+                    ws.Cells[row, 1].Value = item.ClientId;
+                    ws.Cells[row, 2].Value = item.KAID;
+                    ws.Cells[row, 3].Value = item.IssueWeight;
+                    row++;
+                }
+
+                ws.Cells.AutoFitColumns();
+
+                using var successStream = new MemoryStream();
+
+                package.SaveAs(successStream);
+
+                successStream.Position = 0;
+
+                return File(
+                    successStream.ToArray(),
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    $"HPHT_Issue_{DateTime.Now:ddMMMyyyy}.xlsx");
             }
-
-
-            // ============================================
-            // SAVE SUCCESS RECORDS
-            // ============================================
-
-
-
-            await _context.Issues
-    .AddRangeAsync(successList);
-
-            await _context.SaveChangesAsync();
-
-
-            // ============================================
-            // GENERATE KAID
-            // ============================================
-
-            foreach (var item in successList)
+            catch (Exception ex)
             {
-                //item.KAID =
-                //    $"{item.ClientCode}KHT-{item.Id:D3}"; Uncomment this line
+                return StatusCode(StatusCodes.Status500InternalServerError, new
+                {
+                    Message = "An unexpected error occurred while processing issues.",
+                    Error = ex.Message
+                });
             }
-
-            await _context.SaveChangesAsync();
-
-
-            // ============================================
-            // GENERATE EXCEL
-            // ============================================
-            
-            // ============================================
-            // NO SUCCESS RECORDS
-            // ============================================
-
-            if (successList.Count == 0)
-            {
-                Response.Headers.Add(
-                    "failed-records",
-                    JsonSerializer.Serialize(failedData));
-
-                return BadRequest(
-                    "No valid records found");
-            }
-
-            ExcelPackage.LicenseContext =
-                LicenseContext.NonCommercial;
-
-            using var package =
-                new ExcelPackage();
-
-            var ws =
-                package.Workbook
-                .Worksheets.Add("Issues");
-
-
-            // HEADER
-            ws.Cells[1, 1].Value = "SRNO";
-            ws.Cells[1, 2].Value = "CLIENTNAME";
-            ws.Cells[1, 3].Value = "CLIENT CODE";
-            ws.Cells[1, 4].Value = "KA ID";
-            ws.Cells[1, 5].Value = "CLIENTID";
-            ws.Cells[1, 6].Value = "PCS";
-            ws.Cells[1, 7].Value = "ISSUE WEIGHT";
-            ws.Cells[1, 8].Value = "SHAPE";
-            ws.Cells[1, 9].Value = "ISSUE DATE";
-            ws.Cells[1, 10].Value = "ROUGH TYPE";
-            ws.Cells[1, 11].Value = "RETURN DATE";
-            ws.Cells[1, 12].Value = "RETURN WEIGHT";
-            ws.Cells[1, 13].Value = "REMARKS";
-
-
-            // HEADER STYLE
-            using (var range =
-                ws.Cells[1, 1, 1, 13])
-            {
-                range.Style.Font.Bold = true;
-            }
-
-
-            int row = 2;
-
-            foreach (var item in successList)
-            {
-                var client =
-                    await _context.Clients
-                    .FirstOrDefaultAsync(
-                        x => x.ClientCode ==
-                             item.ClientCode);
-
-                ws.Cells[row, 1].Value =
-                    item.SrNo;
-
-                ws.Cells[row, 2].Value =
-                    client?.Name;
-
-                ws.Cells[row, 3].Value =
-                    item.ClientCode;
-
-                ws.Cells[row, 4].Value =
-                    item.KAID;
-
-                ws.Cells[row, 5].Value =
-                    item.ClientId;
-
-                ws.Cells[row, 6].Value =
-                    item.PCS;
-
-                ws.Cells[row, 7].Value =
-                    item.IssueWeight;
-
-                ws.Cells[row, 8].Value =
-                    item.Shape;
-
-                ws.Cells[row, 9].Value =
-                    item.IssueDate;
-
-                ws.Cells[row, 9]
-                    .Style.Numberformat.Format =
-                    "dd-MM-yyyy";
-                ws.Cells[row, 10].Value =
-                    item.ROUGHTYPE;
-
-                
-
-                //ws.Cells[row, 11].Value =
-                //    item.RETURNDATE;
-
-                //ws.Cells[row, 11]
-                //    .Style.Numberformat.Format =
-                //    "dd-MM-yyyy";
-
-                //ws.Cells[row, 12].Value =
-                //    item.RETURNWEIGHT;
-
-                ws.Cells[row, 13].Value =
-                    item.Remarks;
-
-                row++;
-            }
-
-            ws.Cells.AutoFitColumns();
-
-
-            // ============================================
-            // SAVE STREAM
-            // ============================================
-
-            var successStream =
-                new MemoryStream();
-
-            package.SaveAs(successStream);
-
-            successStream.Position = 0;
-
-
-            // ============================================
-            // SEND FAILED RECORDS IN HEADER
-            // ============================================
-
-            Response.Headers.Add(
-                "failed-records",
-                JsonSerializer.Serialize(failedData));
-
-
-            // ============================================
-            // DOWNLOAD EXCEL
-            // ============================================
-
-            return File(
-                successStream.ToArray(),
-                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                $"HPHT_Issue_{DateTime.Now:ddMMMyyyy}.xlsx");
         }
-
         [HttpGet("repeat-search")]
         public async Task<IActionResult> RepeatSearch(
     int? clientCode,
@@ -461,20 +316,20 @@ namespace HPHT.Controllers
                 query = query.Where(x => x.KAID.Contains(kaid));
 
             var result = await query
-                .Select(x => new
-                {
-                    x.Id,
-                    x.KAID,
-                    x.CLIENTNAME,
-                    x.Shape,          // ADD
-                    x.IssueWeight,    // ADD
-                    x.RETURNWEIGHT,
-                    x.IsReturned,
-                    x.RepeatWeight,
-                    x.IsRepeat,
-                    x.RepeatCount
-                })
-                .ToListAsync();
+    .Select(x => new
+    {
+        Id = x.Id,
+        KAID = x.KAID,
+        ClientName = x.CLIENTNAME,
+        Shape = x.Shape,
+        IssueWeight = x.IssueWeight,
+        ReturnWeight = x.RETURNWEIGHT,
+        IsReturned = x.IsReturned,
+        
+        IsRepeat = x.IsRepeat,
+        RepeatCount = x.RepeatCount
+    })
+    .ToListAsync();
 
             return Ok(result);
         }
@@ -512,10 +367,7 @@ namespace HPHT.Controllers
 
                 issue.RepeatCount++;
 
-                issue.RepeatWeight = row.RepeatWeight;
-
-                issue.RepeatDate = DateTime.Now;
-                issue.RepeatBy = User.Identity?.Name;
+               
 
                 updated++;
             }
@@ -712,7 +564,7 @@ namespace HPHT.Controllers
                stream.ToArray(),
                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                $"HPHT_Issue_Return_{DateTime.Now:ddMMMyyyy}.xlsx");
-                
+
             }
             catch (Exception ex)
             {

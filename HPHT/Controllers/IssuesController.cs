@@ -27,7 +27,7 @@ namespace HPHT.Controllers
         // GET: Issues
         public async Task<IActionResult> Index(
     int page = 1,
-    int pageSize = 10,
+    int pageSize = 100,
     int? ccode = null,
     string? kaid = null,
     string? clientId = null)
@@ -58,15 +58,13 @@ namespace HPHT.Controllers
             int totalRecords = await query.CountAsync();
 
             var issues = await query
-    .OrderByDescending(x => x.IssueDate)
-    .ThenByDescending(x => x.Id)
+    .OrderByDescending(x => x.Id)
     .Skip((page - 1) * pageSize)
     .Take(pageSize)
     .ToListAsync();
 
             ViewBag.CurrentPage = page;
-            ViewBag.TotalPages =
-                (int)Math.Ceiling((double)totalRecords / pageSize);
+            ViewBag.TotalPages = (int)Math.Ceiling(totalRecords / (double)pageSize);
 
             ViewBag.PageSize = pageSize;
             ViewBag.KAID = kaid;

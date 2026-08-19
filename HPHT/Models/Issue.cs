@@ -30,7 +30,7 @@ namespace HPHT.Models
         public string? ROUGHTYPE { get; set; }
 
         public DateTime? RETURNDATE { get; set; }
-        [Column(TypeName = "decimal(18,2)")]
+  
         public decimal? RETURNWEIGHT { get; set; }
         public int RepeatCount { get; set; }
         public string? ClientId { get; set; }
@@ -39,11 +39,12 @@ namespace HPHT.Models
 
         public bool IsRepeat { get; set; }
 
-        public decimal? RepeatWeight { get; set; }
+        
 
-        public DateTime? RepeatDate { get; set; }
+      
+        public DateTime? RepeatReturnDate { get; set; }
 
-        public string? RepeatBy { get; set; }
+        
         // Issue Audit
         public DateTime CreatedDate { get; set; }
         public string? CreatedBy { get; set; }
@@ -55,6 +56,14 @@ namespace HPHT.Models
         // Return Audit
         public string? ReturnedBy { get; set; }
         public DateTime? ReturnedOn { get; set; }
+        public ICollection<RepeatHistory> RepeatHistories
+        {
+            get;
+            set;
+        }
+=
+new List<RepeatHistory>();
+
     }
 
 }
