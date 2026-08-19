@@ -4,6 +4,7 @@ using HPHT.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace HPHT.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260720130157_InitialCreate")]
+    partial class InitialCreate
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -151,66 +154,6 @@ namespace HPHT.Migrations
                     b.HasIndex("ClientCode");
 
                     b.ToTable("Issues");
-                });
-
-            modelBuilder.Entity("HPHT.Models.RepeatHistory", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int?>("ClientCode")
-                        .HasColumnType("int");
-
-                    b.Property<string>("ClientId")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime>("CreatedDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<bool>("IsReturned")
-                        .HasColumnType("bit");
-
-                    b.Property<int>("IssueId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("KAID")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("ModifiedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("ModifiedDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Remarks")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime>("RepeatIssueDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<decimal>("RepeatIssueWeight")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<int>("RepeatNo")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime?>("RepeatReturnDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<decimal?>("RepeatReturnWeight")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("IssueId");
-
-                    b.ToTable("RepeatHistories");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
@@ -425,17 +368,6 @@ namespace HPHT.Migrations
                     b.Navigation("Client");
                 });
 
-            modelBuilder.Entity("HPHT.Models.RepeatHistory", b =>
-                {
-                    b.HasOne("HPHT.Models.Issues", "Issue")
-                        .WithMany("RepeatHistories")
-                        .HasForeignKey("IssueId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Issue");
-                });
-
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
                 {
                     b.HasOne("Microsoft.AspNetCore.Identity.IdentityRole", null)
@@ -490,11 +422,6 @@ namespace HPHT.Migrations
             modelBuilder.Entity("HPHT.Models.Clients", b =>
                 {
                     b.Navigation("Issues");
-                });
-
-            modelBuilder.Entity("HPHT.Models.Issues", b =>
-                {
-                    b.Navigation("RepeatHistories");
                 });
 #pragma warning restore 612, 618
         }

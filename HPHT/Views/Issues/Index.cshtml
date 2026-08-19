@@ -6,37 +6,51 @@
 
 <style>
 
+    body {
+        font-size: 11px;
+    }
+
+    h4 {
+        margin-bottom: 10px;
+        font-size: 20px;
+        font-weight: 600;
+    }
+
     .issue-card {
         background: white;
-        padding: 20px;
-        border-radius: 12px;
-        box-shadow: 0 4px 15px rgba(0,0,0,.08);
+        padding: 8px;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0,0,0,.08);
         overflow-x: auto;
     }
 
     .issue-table {
         width: 100%;
+        min-width: 1700px;
         border-collapse: collapse;
-        min-width: 1800px;
+        font-size: 10px;
     }
 
     .issue-table th {
         background: #0d6efd;
         color: white;
-        padding: 12px;
-        text-align: center;
         border: 1px solid #d5e0ff;
+        padding: 4px 5px;
+        text-align: center;
         white-space: nowrap;
         position: sticky;
         top: 0;
         z-index: 10;
+        font-size: 10px;
+        font-weight: 600;
     }
 
     .issue-table td {
         border: 1px solid #ddd;
-        padding: 10px;
+        padding: 3px 5px;
         white-space: nowrap;
         vertical-align: middle;
+        line-height: 1.2;
     }
 
     .issue-table tbody tr:nth-child(even) {
@@ -47,62 +61,100 @@
         background: #eef4ff;
     }
 
-    .toolbar{
-        margin-bottom:15px;
+    .toolbar {
+        margin-bottom: 8px;
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
     }
 
-    .toolbar .btn{
-        margin-right:8px;
+    .toolbar p {
+        margin: 0;
     }
 
-    .pagination{
-        justify-content:center;
-        margin-top:20px;
+    .toolbar .btn {
+        font-size: 11px;
+        padding: 4px 10px;
     }
 
-    .page-item.active .page-link{
-        background:#0d6efd;
-        border-color:#0d6efd;
+    .form-control,
+    .form-select {
+        font-size: 11px;
+        padding: 4px 6px;
+        height: 30px;
     }
+
+    .btn {
+        font-size: 11px;
+        padding: 4px 10px;
+    }
+
+   .pagination {
+    margin-bottom: 8px;
+}
+
+.pagination .page-link {
+    font-size: 11px;
+    padding: 3px 8px;
+}
+
+.pagination .page-item.active .page-link {
+    background: #0d6efd;
+    border-color: #0d6efd;
+}
+
+.pagination .page-item.disabled .page-link {
+    color: #999;
+}
 
 </style>
 
-<h2 class="mb-4">Issue List</h2>
+<h4>Issue List</h4>
 
 <div class="toolbar">
 
-  <p>
-        <a asp-action="Create" class="btn btn-success">New Issue Stones</a>
+    <p>
+        <a asp-action="Create" class="btn btn-success">
+            New Issue Stones
+        </a>
     </p>
 
     <p>
-        <a asp-action="Return" class="btn btn-success">Return Stones</a>
+        <a asp-action="Return" class="btn btn-success">
+            Return Stones
+        </a>
     </p>
 
     <p>
-        <a asp-action="Repeat" class="btn btn-success">Repeat Stones</a>
+        <a asp-action="Repeat" class="btn btn-success">
+            Repeat Stones
+        </a>
     </p>
 
 </div>
 
 <form method="get"
       asp-action="Index"
-      class="row g-2 mb-4">
+      class="row g-2 mb-2">
 
     <div class="col-md-3">
+
         <input type="text"
                name="kaid"
                value="@Context.Request.Query["kaid"]"
                class="form-control"
-               placeholder="Search KAID">
+               placeholder="Search KAID" />
+
     </div>
 
     <div class="col-md-3">
+
         <input type="text"
                name="clientId"
                value="@Context.Request.Query["clientId"]"
                class="form-control"
-               placeholder="Search Client ID">
+               placeholder="Search Client ID" />
+
     </div>
 
     <div class="col-md-3">
@@ -110,9 +162,7 @@
         <select name="ccode"
                 class="form-select">
 
-            <option value="">
-                All Clients
-            </option>
+            <option value="">All Clients</option>
 
             @foreach (var c in ViewBag.Clients)
             {
@@ -156,13 +206,13 @@
                 <th>Pkt No</th>
                 <th>PCS</th>
                 <th>Issue Date</th>
-                <th>Issue Weight</th>
+                <th>Issue Wt</th>
                 <th>Shape</th>
                 <th>Exp</th>
                 <th>Price</th>
                 <th>Remarks</th>
                 <th>Return Date</th>
-                <th>Return Weight</th>
+                <th>Return Wt</th>
 
             </tr>
 
@@ -181,9 +231,7 @@
                     <td>@item.PktNo</td>
                     <td>@item.PCS</td>
 
-                    <td>
-                        @(item.IssueDate?.ToString("dd-MMM-yyyy"))
-                    </td>
+                    <td>@item.IssueDate?.ToString("dd-MMM-yy")</td>
 
                     <td>@item.IssueWeight</td>
 
@@ -195,9 +243,7 @@
 
                     <td>@item.Remarks</td>
 
-                    <td>
-                        @(item.RETURNDATE?.ToString("dd-MMM-yyyy"))
-                    </td>
+                    <td>@item.RETURNDATE?.ToString("dd-MMM-yy")</td>
 
                     <td>@item.RETURNWEIGHT</td>
 
@@ -212,32 +258,92 @@
 
 @if (ViewBag.TotalPages > 1)
 {
-    <nav>
+    var current = (int)ViewBag.CurrentPage;
+    var total = (int)ViewBag.TotalPages;
 
-        <ul class="pagination">
+    <nav class="mb-2">
+        <ul class="pagination pagination-sm justify-content-end">
 
-            @for (int i = 1; i <= ViewBag.TotalPages; i++)
+            <!-- Previous -->
+            <li class="page-item @(current == 1 ? "disabled" : "")">
+                <a class="page-link"
+                   href="@Url.Action("Index", new {
+                        page = current - 1,
+                        ccode = Context.Request.Query["ccode"],
+                        kaid = Context.Request.Query["kaid"],
+                        clientId = Context.Request.Query["clientId"]
+                   })">
+                    &laquo;
+                </a>
+            </li>
+
+            @if (current > 3)
             {
-                <li class="page-item @(i==ViewBag.CurrentPage ? "active" : "")">
-
+                <li class="page-item">
                     <a class="page-link"
-                       href="@Url.Action(
-"Index",
-new {
-page=i,
-ccode=Context.Request.Query["ccode"],
-kaid=Context.Request.Query["kaid"],
-clientId=Context.Request.Query["clientId"]
-})">
-
-                        @i
-
+                       href="@Url.Action("Index", new { page = 1, ccode = Context.Request.Query["ccode"], kaid = Context.Request.Query["kaid"], clientId = Context.Request.Query["clientId"] })">
+                        1
                     </a>
+                </li>
 
+                @if (current > 4)
+                {
+                    <li class="page-item disabled">
+                        <span class="page-link">...</span>
+                    </li>
+                }
+            }
+
+            @for (int i = Math.Max(1, current - 2); i <= Math.Min(total, current + 2); i++)
+            {
+                <li class="page-item @(i == current ? "active" : "")">
+                    <a class="page-link"
+                       href="@Url.Action("Index", new {
+                            page = i,
+                            ccode = Context.Request.Query["ccode"],
+                            kaid = Context.Request.Query["kaid"],
+                            clientId = Context.Request.Query["clientId"]
+                       })">
+                        @i
+                    </a>
                 </li>
             }
 
-        </ul>
+            @if (current < total - 2)
+            {
+                @if (current < total - 3)
+                {
+                    <li class="page-item disabled">
+                        <span class="page-link">...</span>
+                    </li>
+                }
 
+                <li class="page-item">
+                    <a class="page-link"
+                       href="@Url.Action("Index", new {
+                            page = total,
+                            ccode = Context.Request.Query["ccode"],
+                            kaid = Context.Request.Query["kaid"],
+                            clientId = Context.Request.Query["clientId"]
+                       })">
+                        @total
+                    </a>
+                </li>
+            }
+
+            <!-- Next -->
+            <li class="page-item @(current == total ? "disabled" : "")">
+                <a class="page-link"
+                   href="@Url.Action("Index", new {
+                        page = current + 1,
+                        ccode = Context.Request.Query["ccode"],
+                        kaid = Context.Request.Query["kaid"],
+                        clientId = Context.Request.Query["clientId"]
+                   })">
+                    &raquo;
+                </a>
+            </li>
+
+        </ul>
     </nav>
 }

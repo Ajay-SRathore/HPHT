@@ -13,10 +13,15 @@ namespace HPHT.Data
         }
         public DbSet<HPHT.Models.Clients> Clients { get; set; } = default!;
         public DbSet<HPHT.Models.Issues> Issues { get; set; } = default!;
-
+        public DbSet<RepeatHistory> RepeatHistories
+        {
+            get;
+            set;
+        }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+
 
             modelBuilder.Entity<Issues>()
                 .HasOne(i => i.Client)
@@ -25,6 +30,11 @@ namespace HPHT.Data
                 .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<Clients>().HasKey(e => e.ClientCode);
+            modelBuilder.Entity<RepeatHistory>()
+.HasOne(x => x.Issue)
+.WithMany(x => x.RepeatHistories)
+.HasForeignKey(x => x.IssueId)
+.OnDelete(DeleteBehavior.Cascade);
         }
     }
 }
